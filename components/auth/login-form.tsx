@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Lock, Chrome, Heart, AlertCircle } from "lucide-react";
+import { Mail, Lock, Heart, AlertCircle } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 interface LoginFormProps {
   onSwitchToSignup: () => void;
@@ -55,7 +56,7 @@ export function LoginForm({
             <Heart className="h-6 w-6 text-white" />
           </div>
           <div className="text-left">
-            <h1 className="text-2xl font-bold text-slate-900">SAMBA LOANS</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Infinity Lenders</h1>
             <p className="text-emerald-700 font-semibold text-sm">
               Helping Hands
             </p>
@@ -135,7 +136,7 @@ export function LoginForm({
             }
           }}
         >
-          <Chrome className="mr-2 h-4 w-4" />
+          <FcGoogle className="mr-2 h-6 w-6" />
           Continue with Google
         </Button>
 

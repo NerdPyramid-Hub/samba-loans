@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Mail, Lock, User, Chrome, CheckCircle, Heart } from "lucide-react"
+import { FcGoogle } from "react-icons/fc";
 
 interface SignupFormProps {
   onSwitchToLogin: () => void
@@ -67,11 +68,11 @@ export function SignupForm({ onSwitchToLogin, onSignup, onGoogleSignup }: Signup
             <Heart className="h-6 w-6 text-white" />
           </div>
           <div className="text-left">
-            <h1 className="text-2xl font-bold text-slate-900">SAMBA LOANS</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Infinity Lenders</h1>
             <p className="text-emerald-700 font-semibold text-sm">Helping Hands</p>
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold text-slate-800">Join Samba Loans</CardTitle>
+        <CardTitle className="text-2xl font-bold text-slate-800">Join Infinity Lenders</CardTitle>
         <CardDescription className="text-slate-600">Create your account to get started</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -143,7 +144,7 @@ export function SignupForm({ onSwitchToLogin, onSignup, onGoogleSignup }: Signup
           className="w-full bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50"
           onClick={onGoogleSignup}
         >
-          <Chrome className="mr-2 h-4 w-4" />
+          <FcGoogle className="mr-2 h-6 w-6" />
           Continue with Google
         </Button>
 

@@ -73,7 +73,7 @@ export default function LoanApplicationSystem() {
   const [adminTab, setAdminTab] = useState("dashboard");
 
   // Demo mode detection
-  const isDemoMode = process.env.NODE_ENV === "development";
+  const isDemoMode = process.env.NODE_ENV === "production";
 
   // Demo mode indicator component
   const DemoModeIndicator = () => {

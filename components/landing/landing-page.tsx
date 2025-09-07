@@ -35,7 +35,7 @@ export function LandingPage({ onGetStarted, onAdminAccess }: LandingPageProps) {
                 <Heart className="h-10 w-10 text-white" />
               </div>
               <div className="text-left">
-                <h1 className="text-6xl md:text-7xl font-bold text-slate-900">SAMBA LOANS</h1>
+                <h1 className="text-6xl md:text-6xl font-bold text-slate-900">Infinity Lenders</h1>
                 <p className="text-emerald-700 font-semibold text-xl">Helping Hands</p>
               </div>
             </div>
