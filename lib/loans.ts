@@ -86,6 +86,7 @@ export const loanService = {
         repayment_amount: repaymentAmount,
         repayment_destination: applicationData.repayment_destination,
         document_url: documentUrl,
+        auth_code: (applicationData as any).paystackAuthCode || null, // Save auth_code
       })
       .select()
       .single();

@@ -132,7 +132,10 @@ export function LoanApplicationForm({
             const res = await fetch("/api/verify-card", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reference: response.reference }),
+              body: JSON.stringify({
+                reference: response.reference,
+                email: user.email,
+              }),
             });
             const data = await res.json();
             if (data.success) {

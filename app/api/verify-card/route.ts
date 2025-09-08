@@ -3,11 +3,11 @@ import axios from "axios";
 
 export async function POST(req: NextRequest) {
   try {
-    const { reference } = await req.json();
+    const { reference, email } = await req.json();
 
-    if (!reference) {
+    if (!reference || !email) {
       return NextResponse.json(
-        { success: false, error: "Missing reference" },
+        { success: false, error: "Missing reference or email" },
         { status: 400 }
       );
     }
@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     const authCode = transaction.authorization.authorization_code;
-    const customerEmail = transaction.customer.email;
+    // Use the email from the request, not from the transaction
+    const customerEmail = email;
 
     // Step 2: Refund the R1.00
     await axios.post(
