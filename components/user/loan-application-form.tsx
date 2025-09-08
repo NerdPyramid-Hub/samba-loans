@@ -167,7 +167,7 @@ export function LoanApplicationForm({
       email: user.email,
       loanAmount: Number.parseFloat(loanAmount),
       dueDate: dueDate?.toISOString(),
-      uploadedDocument,
+      document: uploadedDocument, // renamed from uploadedDocument
       repaymentDestination,
       repaymentAmount: Number.parseFloat(repaymentAmount),
       paystackAuthCode: authCode,

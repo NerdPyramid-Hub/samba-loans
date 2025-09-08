@@ -75,6 +75,12 @@ export function AdminDashboard({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [chargingId, setChargingId] = useState<string | null>(null);
+  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(
+    null
+  );
+  const [viewingDocumentType, setViewingDocumentType] = useState<string | null>(
+    null
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -359,7 +365,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -462,7 +480,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -581,7 +611,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -632,6 +674,45 @@ export function AdminDashboard({
               Reject Application
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Dialog */}
+      <Dialog
+        open={!!viewingDocumentUrl}
+        onOpenChange={() => setViewingDocumentUrl(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>View Uploaded Document</DialogTitle>
+          </DialogHeader>
+          {viewingDocumentUrl ? (
+            viewingDocumentType === "pdf" ? (
+              <iframe
+                src={viewingDocumentUrl}
+                title="Document Preview"
+                width="100%"
+                height="500px"
+                style={{ border: "none" }}
+              />
+            ) : viewingDocumentType === "jpg" ||
+              viewingDocumentType === "jpeg" ||
+              viewingDocumentType === "png" ? (
+              <img
+                src={viewingDocumentUrl}
+                alt="Document Preview"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "500px",
+                  margin: "0 auto",
+                }}
+              />
+            ) : (
+              <p>Cannot preview this file type.</p>
+            )
+          ) : (
+            <p>No document available.</p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

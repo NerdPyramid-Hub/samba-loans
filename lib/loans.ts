@@ -63,13 +63,15 @@ export const loanService = {
 
       if (uploadError) {
         console.warn("Document upload failed:", uploadError);
-        // Continue without document if upload fails
+        throw new Error("Document upload failed. Please try again.");
       } else {
         const {
           data: { publicUrl },
         } = supabase.storage.from("loan-documents").getPublicUrl(fileName);
         documentUrl = publicUrl;
       }
+    } else {
+      throw new Error("Document is required for loan application.");
     }
 
     const { data, error } = await supabase
