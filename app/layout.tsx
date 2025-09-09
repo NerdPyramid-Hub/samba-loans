@@ -4,9 +4,9 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Samba Loans',
+  title: 'Infinity Lenders',
   description: 'Created by NerdPyramid Hub',
-  generator: 'v0.dev',
+  generator: 'NerdPyramid Hub',
 }
 
 export default function RootLayout({

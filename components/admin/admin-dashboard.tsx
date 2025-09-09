@@ -74,6 +74,13 @@ export function AdminDashboard({
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [chargingId, setChargingId] = useState<string | null>(null);
+  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(
+    null
+  );
+  const [viewingDocumentType, setViewingDocumentType] = useState<string | null>(
+    null
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -152,6 +159,38 @@ export function AdminDashboard({
       setSelectedApp(null);
     }
   }, [selectedApp, rejectionReason, onReject]);
+
+  // Handler to charge card for overdue loans
+  const handleChargeCard = async (
+    app: LoanApplication & { email?: string; authCode?: string }
+  ) => {
+    if (!app.authCode || !app.email) {
+      alert("No card authorization found for this user.");
+      return;
+    }
+    setChargingId(app.id);
+    try {
+      const res = await fetch("/api/charge-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: app.loanAmount,
+          email: app.email,
+          authCode: app.authCode,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Card charged successfully!");
+        // Optionally update repayment status here
+      } else {
+        alert("Charge failed: " + data.error);
+      }
+    } catch (err: any) {
+      alert("Charge failed: " + err.message);
+    }
+    setChargingId(null);
+  };
 
   return (
     <div>
@@ -326,7 +365,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -429,7 +480,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -479,6 +542,18 @@ export function AdminDashboard({
                                       Mark Overdue
                                     </Button>
                                   )}
+                                {app.repaymentStatus === "Overdue" && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={chargingId === app.id}
+                                    onClick={() => handleChargeCard(app as any)}
+                                  >
+                                    {chargingId === app.id
+                                      ? "Charging..."
+                                      : "Charge Card"}
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -536,7 +611,19 @@ export function AdminDashboard({
                               {app.repaymentDestination}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingDocumentUrl(app.documentUrl);
+                                  setViewingDocumentType(
+                                    app.documentUrl
+                                      .split(".")
+                                      .pop()
+                                      ?.toLowerCase() || null
+                                  );
+                                }}
+                              >
                                 <FileText className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -587,6 +674,45 @@ export function AdminDashboard({
               Reject Application
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Dialog */}
+      <Dialog
+        open={!!viewingDocumentUrl}
+        onOpenChange={() => setViewingDocumentUrl(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>View Uploaded Document</DialogTitle>
+          </DialogHeader>
+          {viewingDocumentUrl ? (
+            viewingDocumentType === "pdf" ? (
+              <iframe
+                src={viewingDocumentUrl}
+                title="Document Preview"
+                width="100%"
+                height="500px"
+                style={{ border: "none" }}
+              />
+            ) : viewingDocumentType === "jpg" ||
+              viewingDocumentType === "jpeg" ||
+              viewingDocumentType === "png" ? (
+              <img
+                src={viewingDocumentUrl}
+                alt="Document Preview"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "500px",
+                  margin: "0 auto",
+                }}
+              />
+            ) : (
+              <p>Cannot preview this file type.</p>
+            )
+          ) : (
+            <p>No document available.</p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

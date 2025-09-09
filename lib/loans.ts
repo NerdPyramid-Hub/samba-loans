@@ -63,13 +63,15 @@ export const loanService = {
 
       if (uploadError) {
         console.warn("Document upload failed:", uploadError);
-        // Continue without document if upload fails
+        throw new Error("Document upload failed. Please try again.");
       } else {
         const {
           data: { publicUrl },
         } = supabase.storage.from("loan-documents").getPublicUrl(fileName);
         documentUrl = publicUrl;
       }
+    } else {
+      throw new Error("Document is required for loan application.");
     }
 
     const { data, error } = await supabase
@@ -84,6 +86,7 @@ export const loanService = {
         repayment_amount: repaymentAmount,
         repayment_destination: applicationData.repayment_destination,
         document_url: documentUrl,
+        auth_code: (applicationData as any).paystackAuthCode || null, // Save auth_code
       })
       .select()
       .single();

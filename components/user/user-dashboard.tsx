@@ -113,7 +113,7 @@ export function UserDashboard({
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                Loan Dashboard
+                Infinity Lenders
               </h1>
               <p className="text-slate-600">
                 Welcome back, {user?.name || "User"}
