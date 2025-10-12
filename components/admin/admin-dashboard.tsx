@@ -164,7 +164,11 @@ export function AdminDashboard({
   const handleChargeCard = async (
     app: LoanApplication & { email?: string; authCode?: string }
   ) => {
-    if (!app.authCode || !app.email) {
+    if (!app.email) {
+      alert("No card authorization found for this user.");
+      return;
+    }
+    if (!app.authCode) {
       alert("No card authorization found for this user.");
       return;
     }
