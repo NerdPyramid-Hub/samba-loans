@@ -1,17 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import getAdminContext from "@/lib/server-auth"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const adminCtx = await getAdminContext(request as any)
+  if ((adminCtx as any)?.status) return adminCtx as NextResponse
+
+  const { supabaseAdmin } = adminCtx as any
+
   try {
     const { data, error } = await supabaseAdmin
       .from("loan_applications")

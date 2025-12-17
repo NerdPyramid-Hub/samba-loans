@@ -160,42 +160,6 @@ export function AdminDashboard({
     }
   }, [selectedApp, rejectionReason, onReject]);
 
-  // Handler to charge card for overdue loans
-  const handleChargeCard = async (
-    app: LoanApplication & { email?: string; authCode?: string }
-  ) => {
-    if (!app.email) {
-      alert("No card authorization found for this user.");
-      return;
-    }
-    if (!app.authCode) {
-      alert("No card authorization found for this user.");
-      return;
-    }
-    setChargingId(app.id);
-    try {
-      const res = await fetch("/api/charge-customer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: app.loanAmount,
-          email: app.email,
-          authCode: app.authCode,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Card charged successfully!");
-        // Optionally update repayment status here
-      } else {
-        alert("Charge failed: " + data.error);
-      }
-    } catch (err: any) {
-      alert("Charge failed: " + err.message);
-    }
-    setChargingId(null);
-  };
-
   return (
     <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -546,18 +510,6 @@ export function AdminDashboard({
                                       Mark Overdue
                                     </Button>
                                   )}
-                                {app.repaymentStatus === "Overdue" && (
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={chargingId === app.id}
-                                    onClick={() => handleChargeCard(app as any)}
-                                  >
-                                    {chargingId === app.id
-                                      ? "Charging..."
-                                      : "Charge Card"}
-                                  </Button>
-                                )}
                               </div>
                             </TableCell>
                           </TableRow>

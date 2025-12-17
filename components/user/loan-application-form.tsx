@@ -2,12 +2,6 @@
 
 import type React from "react";
 
-declare global {
-  interface Window {
-    PaystackPop?: any;
-  }
-}
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  CalendarIcon,
-  Upload,
-  ArrowLeft,
-  Calculator,
-  AlertCircle,
-} from "lucide-react";
+import { CalendarIcon, Upload, ArrowLeft, Calculator } from "lucide-react";
 import { format } from "date-fns";
 
 interface LoanApplicationFormProps {
@@ -50,13 +38,17 @@ export function LoanApplicationForm({
   const [loanAmount, setLoanAmount] = useState("");
   const [dueDate, setDueDate] = useState<Date>();
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
-  const [repaymentDestination, setRepaymentDestination] = useState("");
+
+  const [bank, setBank] = useState("");
+  const [accountHolderName, setAccountHolderName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState<
+    "accept" | "reject" | null
+  >(null);
+  const [termsError, setTermsError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [cardVerified, setCardVerified] = useState(false);
-  const [authCode, setAuthCode] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
-  const [paystackReady, setPaystackReady] = useState(false);
-  const [scriptError, setScriptError] = useState<string | null>(null);
+  // Card verification removed (Paystack not used anymore)
+  const [cardVerified] = useState(true);
 
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 40);
@@ -65,104 +57,30 @@ export function LoanApplicationForm({
     ? (Number.parseFloat(loanAmount) * 1.3).toFixed(2)
     : "0.00";
 
-  // Dynamically load Paystack script
-  useEffect(() => {
-    if (window.PaystackPop) {
-      setPaystackReady(true);
-      return;
-    }
-
-    if (typeof document !== "undefined") {
-      const script = document.createElement("script");
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.async = true;
-      script.onload = () => {
-        console.log("Paystack script loaded successfully");
-        setPaystackReady(true);
-        setScriptError(null);
-      };
-      script.onerror = () => {
-        console.error("Failed to load Paystack script");
-        setScriptError(
-          "Failed to load payment system. Please refresh the page."
-        );
-        setPaystackReady(false);
-      };
-      document.body.appendChild(script);
-
-      return () => {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      };
-    }
-  }, []);
-
-  // Handle card verification
-  const handleCardVerification = () => {
-    if (!paystackReady) {
-      alert(
-        "Payment system is still loading. Please wait a moment and try again."
-      );
-      return;
-    }
-
-    if (!window.PaystackPop) {
-      alert("Payment system is not available. Please refresh the page.");
-      return;
-    }
-
-    setVerifying(true);
-    setScriptError(null);
-
-    const handler = window.PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-      email: user.email,
-      amount: 100, // R1.00 in cents
-      currency: "ZAR",
-      ref: "verif_" + Date.now(),
-      onClose: () => {
-        setVerifying(false);
-        console.log("Payment popup closed by user");
-      },
-      callback: (response: any) => {
-        (async () => {
-          try {
-            console.log("Sending reference to backend:", response.reference);
-            const res = await fetch("/api/verify-card", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                reference: response.reference,
-                email: user.email,
-              }),
-            });
-            const data = await res.json();
-            if (data.success) {
-              setCardVerified(true);
-              setAuthCode(data.authCode);
-              alert("Card verified successfully!");
-            } else {
-              alert("Verification failed: " + data.error);
-            }
-          } catch (err: any) {
-            console.error("Verification API error:", err);
-            alert("Verification failed: " + err.message);
-          } finally {
-            setVerifying(false);
-          }
-        })();
-      },
-      "data-testing": false,
-    });
-
-    handler.openIframe();
-  };
+  // Note: card verification removed. Users can submit without Paystack verification.
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Terms must be accepted
+    if (termsAccepted !== "accept") {
+      setTermsError(
+        "You must accept the terms and conditions to submit the application."
+      );
+      setLoading(false);
+      return;
+    }
+
+    // Validate repayment destination fields
+    if (!bank || !accountHolderName || !accountNumber) {
+      alert(
+        "Please provide bank, account holder name and account number for repayment."
+      );
+      setLoading(false);
+      return;
+    }
 
     const formData = {
       fullName: user.name,
@@ -171,9 +89,13 @@ export function LoanApplicationForm({
       loanAmount: Number.parseFloat(loanAmount),
       dueDate: dueDate?.toISOString(),
       document: uploadedDocument, // renamed from uploadedDocument
-      repaymentDestination,
+      repaymentDestination: {
+        bank,
+        accountHolderName,
+        accountNumber,
+      },
       repaymentAmount: Number.parseFloat(repaymentAmount),
-      paystackAuthCode: authCode,
+      // paystackAuthCode intentionally removed
     };
 
     await onSubmit(formData);
@@ -355,97 +277,144 @@ export function LoanApplicationForm({
 
               {/* Repayment Destination */}
               <div className="space-y-2">
-                <Label htmlFor="repaymentDestination">
+                <Label htmlFor="repaymentDestinationHeader">
                   Repayment Destination Details
                 </Label>
-                <Input
-                  id="repaymentDestination"
-                  placeholder="e.g., Capitec - 123456789 - John Smith"
-                  value={repaymentDestination}
-                  onChange={(e) => setRepaymentDestination(e.target.value)}
-                  required
-                />
                 <p className="text-sm text-slate-600">
                   Where should we send your approved loan?
                 </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bank">Bank</Label>
+                    <select
+                      id="bank"
+                      className="w-full rounded border-slate-200 p-2"
+                      value={bank}
+                      onChange={(e) => setBank(e.target.value)}
+                      required
+                    >
+                      <option value="">Select bank</option>
+                      <option>Absa</option>
+                      <option>Capitec</option>
+                      <option>FNB (First National Bank)</option>
+                      <option>Nedbank</option>
+                      <option>Standard Bank</option>
+                      <option>Investec</option>
+                      <option>TymeBank</option>
+                      <option>African Bank</option>
+                      <option>Bidvest Bank</option>
+                      <option>Bank Zero</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-1">
+                    <Label htmlFor="accountHolderName">
+                      Account Holder Name
+                    </Label>
+                    <Input
+                      id="accountHolderName"
+                      placeholder="Account holder full name"
+                      value={accountHolderName}
+                      onChange={(e) => setAccountHolderName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">Account Number</Label>
+                    <Input
+                      id="accountNumber"
+                      placeholder="Numeric account number"
+                      value={accountNumber}
+                      onChange={(e) =>
+                        setAccountNumber(e.target.value.replace(/\D/g, ""))
+                      }
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Card Verification */}
-              <div className="space-y-2">
-                <Label>Card Verification (Required)</Label>
-
-                {!paystackReady && !scriptError && (
-                  <p className="text-sm text-slate-600">
-                    Loading payment system...
-                  </p>
-                )}
-                {scriptError && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{scriptError}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    className={
-                      cardVerified
-                        ? "bg-emerald-500 hover:bg-emerald-600 cursor-default"
-                        : verifying
-                        ? "bg-emerald-400 cursor-wait"
-                        : "bg-emerald-600 hover:bg-emerald-700"
-                    }
-                    onClick={handleCardVerification}
-                    disabled={!paystackReady || cardVerified || verifying}
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "1rem",
-                      borderRadius: "0.5rem",
-                      transition: "background 0.2s",
-                    }}
-                  >
-                    {cardVerified ? (
-                      "✅ Card Verified"
-                    ) : verifying ? (
-                      "Verifying..."
-                    ) : (
-                      <span>
-                        <span
-                          style={{
-                            background:
-                              "linear-gradient(90deg,#10b981,#059669)",
-                            color: "#fff",
-                            padding: "0.25em 1em",
-                            borderRadius: "0.375rem",
-                            fontWeight: 600,
-                            boxShadow: "0 1px 2px rgba(16,185,129,0.10)",
-                          }}
-                        >
-                          Verify Card (R1.00)
-                        </span>
-                      </span>
-                    )}
-                  </Button>
+              {/* Terms & Conditions */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Terms & Conditions
+                </h3>
+                <div className="border rounded p-3 max-h-44 overflow-auto text-sm text-slate-700 bg-white">
+                  <p>By selecting “Accept”, you agree to the following:</p>
+                  <ul className="list-disc ml-5 mt-2 space-y-1">
+                    <li>
+                      You will repay the loan amount plus 30% flat interest
+                      within the repayment period shown in the app.
+                    </li>
+                    <li>
+                      If you miss your due date, late fees apply as follows:
+                      R150 after 3 days late, R300 after 6 days late. This
+                      pattern continues, meaning an additional R150 is added
+                      every 3 days until payment is made.
+                    </li>
+                    <li>
+                      All information you provide must be accurate and kept up
+                      to date.
+                    </li>
+                    <li>
+                      The Lender may take lawful recovery action for unpaid or
+                      defaulted loans.
+                    </li>
+                    <li>
+                      Verification documents must be provided when requested.
+                    </li>
+                    <li>
+                      This agreement is governed by the laws of South Africa.
+                    </li>
+                    <li>
+                      Terms may be updated in the app; continued use means you
+                      accept the updates.
+                    </li>
+                    <li>
+                      By clicking “Accept”, you confirm that you understand and
+                      agree to these terms. If not, select “Reject.”
+                    </li>
+                  </ul>
                 </div>
-                {!cardVerified && (
-                  <p className="text-sm text-slate-600">
-                    You must verify your card before submitting your loan
-                    application. A R1.00 test charge will be immediately
-                    refunded.
-                  </p>
-                )}
-                {cardVerified && (
-                  <p className="text-sm text-emerald-600">
-                    ✅ Card verified and saved for future repayment.
-                  </p>
+
+                <div className="flex items-center space-x-6">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="terms"
+                      checked={termsAccepted === "accept"}
+                      onChange={() => {
+                        setTermsAccepted("accept");
+                        setTermsError("");
+                      }}
+                    />
+                    <span className="text-sm">Accept</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="terms"
+                      checked={termsAccepted === "reject"}
+                      onChange={() => {
+                        setTermsAccepted("reject");
+                        setTermsError("");
+                      }}
+                    />
+                    <span className="text-sm">Reject</span>
+                  </label>
+                </div>
+                {termsError && (
+                  <p className="text-sm text-red-600">{termsError}</p>
                 )}
               </div>
 
               <Button
                 type="submit"
                 className="w-full bg-emerald-600 hover:bg-emerald-700"
-                disabled={loading || !cardVerified}
+                disabled={loading || termsAccepted !== "accept"}
               >
                 {loading
                   ? "Submitting Application..."

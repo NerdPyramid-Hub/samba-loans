@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import fetchWithAuth from "./api";
 
 export interface LoanApplication {
   id: string;
@@ -86,7 +87,6 @@ export const loanService = {
         repayment_amount: repaymentAmount,
         repayment_destination: applicationData.repayment_destination,
         document_url: documentUrl,
-        auth_code: (applicationData as any).paystackAuthCode || null, // Save auth_code
       })
       .select()
       .single();
@@ -127,7 +127,8 @@ export const loanService = {
   async getAllApplications(): Promise<DashboardApplication[]> {
     try {
       console.log("Fetching applications from API...");
-      const response = await fetch("/api/admin/applications");
+      // Include current user's access token so server can verify admin
+      const response = await fetchWithAuth("/api/admin/applications");
       console.log("API response status:", response.status);
 
       if (!response.ok) {
@@ -215,14 +216,9 @@ export const loanService = {
 
   // Admin: Approve loan application (via API route)
   async approveApplication(applicationId: string): Promise<LoanApplication> {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/admin/applications/${applicationId}/approve`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      { method: "POST" }
     );
 
     if (!response.ok) {
@@ -243,15 +239,9 @@ export const loanService = {
     applicationId: string,
     rejectionReason: string
   ): Promise<LoanApplication> {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/admin/applications/${applicationId}/reject`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rejectionReason }),
-      }
+      { method: "POST", body: JSON.stringify({ rejectionReason }) }
     );
 
     if (!response.ok) {
@@ -272,15 +262,9 @@ export const loanService = {
     applicationId: string,
     repaymentStatus: "paid" | "unpaid" | "overdue"
   ): Promise<LoanApplication> {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/admin/applications/${applicationId}/repayment-status`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ repaymentStatus }),
-      }
+      { method: "PATCH", body: JSON.stringify({ repaymentStatus }) }
     );
 
     if (!response.ok) {
@@ -299,7 +283,16 @@ export const loanService = {
   // Get monthly analytics data (via API route)
   async getMonthlyAnalytics() {
     try {
-      const response = await fetch("/api/admin/analytics");
+      const { data: { session } = {} as any } = await (
+        supabase as any
+      ).auth.getSession();
+      const token = session?.access_token;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetchWithAuth("/api/admin/analytics");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
