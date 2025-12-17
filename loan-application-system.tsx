@@ -235,9 +235,24 @@ export default function LoanApplicationSystem() {
   const handleLogin = async (email: string, password: string) => {
     try {
       showLoading("Signing you in...");
-      await authService.signIn(email, password);
+      const data = await authService.signIn(email, password);
       hideLoading();
       // User state will be updated through onAuthStateChange listener
+      // If we received a session, store it server-side (HttpOnly cookie)
+      const accessToken = (data as any)?.session?.access_token;
+      if (accessToken && typeof window !== "undefined") {
+        try {
+          await fetch("/api/auth/store-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: accessToken }),
+          });
+          // Notify any pending requests that session is restored
+          window.dispatchEvent(new CustomEvent("session:restored"));
+        } catch (err) {
+          console.warn("Failed to store session on server:", err);
+        }
+      }
     } catch (error: any) {
       hideLoading();
       console.error("Login failed:", error);
@@ -254,11 +269,25 @@ export default function LoanApplicationSystem() {
   ) => {
     try {
       showLoading("Creating your account...");
-      await authService.signUp(email, password, name);
+      const data = await authService.signUp(email, password, name);
       hideLoading();
       showSuccess(
         "Account created successfully! Please check your email to verify your account."
       );
+      // If signup returns an active session (rare when email verification not required), store it
+      const accessToken = (data as any)?.session?.access_token;
+      if (accessToken && typeof window !== "undefined") {
+        try {
+          await fetch("/api/auth/store-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: accessToken }),
+          });
+          window.dispatchEvent(new CustomEvent("session:restored"));
+        } catch (err) {
+          console.warn("Failed to store session on server after signup:", err);
+        }
+      }
       // User state will be updated through onAuthStateChange listener
     } catch (error: any) {
       hideLoading();
@@ -270,9 +299,23 @@ export default function LoanApplicationSystem() {
   const handleGoogleLogin = async () => {
     try {
       showLoading("Connecting to Google...");
-      await authService.signInWithGoogle();
+      const data = await authService.signInWithGoogle();
       hideLoading();
       // User state will be updated through onAuthStateChange listener
+      // OAuth flows often redirect; if we got a session immediately, store it server-side
+      const accessToken = (data as any)?.session?.access_token;
+      if (accessToken && typeof window !== "undefined") {
+        try {
+          await fetch("/api/auth/store-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: accessToken }),
+          });
+          window.dispatchEvent(new CustomEvent("session:restored"));
+        } catch (err) {
+          console.warn("Failed to store session on server after OAuth:", err);
+        }
+      }
     } catch (error: any) {
       hideLoading();
       console.error("Google login failed:", error);
@@ -285,6 +328,12 @@ export default function LoanApplicationSystem() {
   const handleLogout = async () => {
     try {
       await authService.signOut();
+      // Clear server-side cookie
+      try {
+        await fetch("/api/auth/clear-session", { method: "POST" });
+      } catch (err) {
+        console.warn("Failed to clear server session cookie:", err);
+      }
       setCurrentView("landing");
     } catch (error) {
       console.error("Logout failed:", error);

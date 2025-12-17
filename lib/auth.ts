@@ -157,4 +157,82 @@ export const authService = {
       callback(session?.user ?? null);
     });
   },
+
+  // Store server-side session cookies (access + refresh)
+  async storeServerSession(accessToken: string, refreshToken: string) {
+    try {
+      const res = await fetch("/api/auth/store-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Failed to store server session: ${res.status} ${txt}`);
+      }
+      return true;
+    } catch (err) {
+      console.error("storeServerSession error:", err);
+      return false;
+    }
+  },
+
+  // Refresh server-side session using refresh token cookie
+  async refreshServerSession() {
+    try {
+      const res = await fetch("/api/auth/refresh-session", { method: "POST" });
+      if (!res.ok) {
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("refreshServerSession error:", err);
+      return false;
+    }
+  },
+
+  // Auto-refresh management
+  _refreshTimeoutId: null as any,
+  async startAutoRefresh() {
+    try {
+      const { data: { session } = {} as any } =
+        await supabase.auth.getSession();
+      const expiresAt = (session as any)?.expires_at; // UNIX timestamp (seconds)
+      if (!expiresAt) return;
+
+      const msUntilExpiry = expiresAt * 1000 - Date.now();
+      const refreshBefore = 60 * 1000; // refresh 60s before expiry
+      const timeout = Math.max(0, msUntilExpiry - refreshBefore);
+
+      if (this._refreshTimeoutId) clearTimeout(this._refreshTimeoutId);
+
+      this._refreshTimeoutId = setTimeout(async () => {
+        const ok = await this.refreshServerSession();
+        if (ok) {
+          // dispatch event for pending requests
+          if (typeof window !== "undefined")
+            window.dispatchEvent(new CustomEvent("session:restored"));
+          // schedule next refresh
+          this.startAutoRefresh();
+        } else {
+          if (typeof window !== "undefined")
+            window.dispatchEvent(new CustomEvent("session:expired"));
+        }
+      }, timeout);
+    } catch (err) {
+      console.error("startAutoRefresh error:", err);
+    }
+  },
+
+  stopAutoRefresh() {
+    try {
+      if (this._refreshTimeoutId) clearTimeout(this._refreshTimeoutId);
+      this._refreshTimeoutId = null;
+    } catch (err) {
+      console.error("stopAutoRefresh error:", err);
+    }
+  },
 };

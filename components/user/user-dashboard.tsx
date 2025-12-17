@@ -23,6 +23,7 @@ interface Loan {
   rejectionReason?: string;
   repaymentStatus?: "Paid" | "Unpaid" | "Overdue";
   appliedDate: string;
+  approvedDate: string;
 }
 
 interface UserDashboardProps {
@@ -96,7 +97,7 @@ export function UserDashboard({
   const normalizeLoan = (loan: Loan) => ({
     ...loan,
     amount: loan.loanAmount,
-    approvedDate: loan.appliedDate, // Use appliedDate as fallback
+    approvedDate: loan.approvedDate,
     dueDate: loan.dueDate,
     repaymentStatus: loan.repaymentStatus || "Unpaid",
     rejectionReason: loan.rejectionReason,
@@ -245,7 +246,7 @@ export function UserDashboard({
                               R{formatAmount(loan.amount)}
                             </h3>
                             <p className="text-slate-600 text-sm">
-                              Applied on {formatDate(loan.dueDate)}
+                              Applied on {formatDate(loan.appliedDate)}
                             </p>
                           </div>
                           <div className="flex gap-2">
